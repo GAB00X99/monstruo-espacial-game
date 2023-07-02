@@ -20,6 +20,10 @@ window.requestAnimFrame = function () {
     c.fillRect(0, 0, w, h);
     return { c: c, canvas: canvas };
   }
+  let projectiles = []; // Almacena los proyectiles disparados
+  let projectileSpeed = 5; // Velocidad de los proyectiles
+  let projectileSize = 3; // Tamaño de los proyectiles
+  let shooting = false; // Estado de disparo
   
   window.onload = function () {
     let c = init("canvas").c,
@@ -86,13 +90,15 @@ window.requestAnimFrame = function () {
             new segment(this.segments[i - 1], this.l / this.n, 0, false)
           );
         }
+        this.gunOffset = { x: 20, y: 0 }; // Ajusta los valores según la posición del cañón en relación con el centro del monstruo
       }
+    
       move(last_target, target) {
         this.angle = Math.atan2(target.y - this.y, target.x - this.x);
         this.dt = dist(last_target.x, last_target.y, target.x, target.y) + 5;
         this.t = {
           x: target.x - 0.8 * this.dt * Math.cos(this.angle),
-          y: target.y - 0.8 * this.dt * Math.sin(this.angle)
+          y: target.y - 0.8 * this.dt * Math.sin(this.angle),
         };
         if (this.t.x) {
           this.segments[this.n - 1].update(this.t);
@@ -112,6 +118,7 @@ window.requestAnimFrame = function () {
           }
         }
       }
+    
       show(target) {
         if (dist(this.x, this.y, target.x, target.y) <= this.l) {
           c.globalCompositeOperation = "lighter";
@@ -133,6 +140,7 @@ window.requestAnimFrame = function () {
           c.globalCompositeOperation = "source-over";
         }
       }
+    
       show2(target) {
         c.beginPath();
         if (dist(this.x, this.y, target.x, target.y) <= this.l) {
@@ -140,12 +148,12 @@ window.requestAnimFrame = function () {
           c.fillStyle = "white";
         } else {
           c.arc(this.x, this.y, this.rand * 2, 0, 2 * Math.PI);
-          c.fillStyle = "darkcyan";
+          c.fillStyle = "white";
         }
         c.fill();
       }
     }
-  
+    
     let maxl = 300,
       minl = 50,
       n = 30,
@@ -184,12 +192,12 @@ window.requestAnimFrame = function () {
             (Math.pow(Math.sin(t), 2) + 1) -
           target.y;
       }
-  
+    
       target.x += target.errx / 10;
       target.y += target.erry / 10;
-  
+    
       t += 0.01;
-  
+    
       c.beginPath();
       c.arc(
         target.x,
@@ -200,17 +208,28 @@ window.requestAnimFrame = function () {
       );
       c.fillStyle = "hsl(210,100%,80%)";
       c.fill();
-  
-      for (i = 0; i < numt; i++) {
+    
+      for (let i = 0; i < numt; i++) {
         tent[i].move(last_target, target);
         tent[i].show2(target);
       }
-      for (i = 0; i < numt; i++) {
+    
+      for (let i = 0; i < numt; i++) {
         tent[i].show(target);
       }
+      
+      for (let i = 0; i < projectiles.length; i++) {
+        const proj = projectiles[i];
+        c.beginPath();
+        c.arc(proj.x, proj.y, projectileSize, 0, Math.PI * 2);
+        c.fillStyle = "white"; // Color de los proyectiles
+        c.fill();
+      }
+      
       last_target.x = target.x;
       last_target.y = target.y;
     }
+    
   
     canvas.addEventListener(
       "mousemove",
@@ -249,7 +268,38 @@ window.requestAnimFrame = function () {
       window.requestAnimFrame(loop);
       c.clearRect(0, 0, w, h);
       draw();
+    
+      if (clicked && !shooting) {
+        shooting = true;
+        shoot(); // Asegúrate de que la función shoot() esté implementada correctamente.
+      }
+    
+      if (!clicked) {
+        shooting = false;
+      }
+    
+      // Recorre los proyectiles al revés para evitar problemas al eliminar elementos.
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const proj = projectiles[i];
+        proj.x += proj.dx;
+        proj.y += proj.dy;
+    
+        // Elimina los proyectiles cuando salen de la pantalla.
+        if (proj.x < 0 || proj.x > w || proj.y < 0 || proj.y > h) {
+          projectiles.splice(i, 1);
+        }
+      }
     }
+    function shoot() {
+      const x = tent[0].segments[tent[0].n - 1].pos.x + tent[0].gunOffset.x;
+      const y = tent[0].segments[tent[0].n - 1].pos.y + tent[0].gunOffset.y;
+      const angle = Math.atan2(y - tent[0].y, x - tent[0].x);
+      const dx = Math.cos(angle) * projectileSpeed;
+      const dy = Math.sin(angle) * projectileSpeed;
+      projectiles.push({ x, y, dx, dy });
+    }
+    
+    
   
     window.addEventListener("resize", function () {
       (w = canvas.width = window.innerWidth),
@@ -260,4 +310,4 @@ window.requestAnimFrame = function () {
     loop();
     setInterval(loop, 1000 / 60);
   };
-  
+
