@@ -100,14 +100,31 @@ window.requestAnimFrame = function () {
           x: target.x - 0.8 * this.dt * Math.cos(this.angle),
           y: target.y - 0.8 * this.dt * Math.sin(this.angle),
         };
+      
+        // Calcula el ángulo de disparo hacia el objetivo
+        let shootAngle = Math.atan2(target.y - this.y, target.x - this.x);
+      
+        // Ajusta el ángulo para permitir un rango de 360 grados
+        if (this.t.x === undefined) {
+          if (shootAngle > Math.PI / 2) {
+            shootAngle -= Math.PI * 2;
+          } else if (shootAngle < -Math.PI / 2) {
+            shootAngle += Math.PI * 2;
+          }
+        }
+      
         if (this.t.x) {
-          this.segments[this.n - 1].update(this.t);
+          this.segments[this.n - 1].update(this.t, shootAngle);
         } else {
-          this.segments[this.n - 1].update(target);
+          this.segments[this.n - 1].update(target, shootAngle);
         }
+      
+        // Actualiza los segmentos restantes
         for (let i = this.n - 2; i >= 0; i--) {
-          this.segments[i].update(this.segments[i + 1].pos);
+          this.segments[i].update(this.segments[i + 1].pos, shootAngle);
         }
+      
+        // Realiza el ajuste de fallback si es necesario
         if (
           dist(this.x, this.y, target.x, target.y) <=
           this.l + dist(last_target.x, last_target.y, target.x, target.y)
@@ -118,6 +135,7 @@ window.requestAnimFrame = function () {
           }
         }
       }
+      
     
       show(target) {
         if (dist(this.x, this.y, target.x, target.y) <= this.l) {
@@ -217,7 +235,7 @@ window.requestAnimFrame = function () {
       for (let i = 0; i < numt; i++) {
         tent[i].show(target);
       }
-      
+    
       for (let i = 0; i < projectiles.length; i++) {
         const proj = projectiles[i];
         c.beginPath();
@@ -225,10 +243,11 @@ window.requestAnimFrame = function () {
         c.fillStyle = "white"; // Color de los proyectiles
         c.fill();
       }
-      
+    
       last_target.x = target.x;
       last_target.y = target.y;
     }
+    
     
   
     canvas.addEventListener(
@@ -291,14 +310,14 @@ window.requestAnimFrame = function () {
       }
     }
     function shoot() {
-      const x = tent[0].segments[tent[0].n - 1].pos.x + tent[0].gunOffset.x;
-      const y = tent[0].segments[tent[0].n - 1].pos.y + tent[0].gunOffset.y;
-      const angle = Math.atan2(y - tent[0].y, x - tent[0].x);
+      const lastSegment = tent[0].segments[tent[0].n - 1];
+      const x = lastSegment.nextPos.x;
+      const y = lastSegment.nextPos.y;
+      const angle = Math.atan2(mouse.y - y, mouse.x - x);
       const dx = Math.cos(angle) * projectileSpeed;
       const dy = Math.sin(angle) * projectileSpeed;
       projectiles.push({ x, y, dx, dy });
     }
-    
     
   
     window.addEventListener("resize", function () {
