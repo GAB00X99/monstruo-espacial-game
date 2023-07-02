@@ -21,17 +21,19 @@ window.requestAnimFrame = function () {
     return { c: c, canvas: canvas };
   }
   let projectiles = []; // Almacena los proyectiles disparados
-  let projectileSpeed = 5; // Velocidad de los proyectiles
+  let projectileSpeed = 8; // Velocidad de los proyectiles
   let projectileSize = 3; // Tamaño de los proyectiles
   let shooting = false; // Estado de disparo
   
   window.onload = function () {
-    let c = init("canvas").c,
-      canvas = init("canvas").canvas,
-      w = (canvas.width = window.innerWidth),
-      h = (canvas.height = window.innerHeight),
-      mouse = { x: false, y: false },
-      last_mouse = {};
+let canvasData = init("canvas");
+let c = canvasData.c;
+let canvas = canvasData.canvas;
+let w = (canvas.width = window.innerWidth);
+let h = (canvas.height = window.innerHeight);
+let mouse = { x: false, y: false };
+let last_mouse = {};
+
   
     function dist(p1x, p1y, p2x, p2y) {
       return Math.sqrt(Math.pow(p2x - p1x, 2) + Math.pow(p2y - p1y, 2));
@@ -194,60 +196,79 @@ window.requestAnimFrame = function () {
         )
       );
     }
-    function draw() {
-      if (mouse.x) {
-        target.errx = mouse.x - target.x;
-        target.erry = mouse.y - target.y;
-      } else {
-        target.errx =
-          w / 2 +
-          ((h / 2 - q) * Math.sqrt(2) * Math.cos(t)) /
-            (Math.pow(Math.sin(t), 2) + 1) -
-          target.x;
-        target.erry =
-          h / 2 +
-          ((h / 2 - q) * Math.sqrt(2) * Math.cos(t) * Math.sin(t)) /
-            (Math.pow(Math.sin(t), 2) + 1) -
-          target.y;
-      }
-    
-      target.x += target.errx / 10;
-      target.y += target.erry / 10;
-    
-      t += 0.01;
-    
-      c.beginPath();
-      c.arc(
-        target.x,
-        target.y,
-        dist(last_target.x, last_target.y, target.x, target.y) + 5,
-        0,
-        2 * Math.PI
-      );
-      c.fillStyle = "hsl(210,100%,80%)";
-      c.fill();
-    
-      for (let i = 0; i < numt; i++) {
-        tent[i].move(last_target, target);
-        tent[i].show2(target);
-      }
-    
-      for (let i = 0; i < numt; i++) {
-        tent[i].show(target);
-      }
-    
-      for (let i = 0; i < projectiles.length; i++) {
-        const proj = projectiles[i];
-        c.beginPath();
-        c.arc(proj.x, proj.y, projectileSize, 0, Math.PI * 2);
-        c.fillStyle = "white"; // Color de los proyectiles
-        c.fill();
-      }
-    
-      last_target.x = target.x;
-      last_target.y = target.y;
-    }
-    
+    let lastMouseX = 0;
+let lastMouseY = 0;
+
+// ...
+let lastTarget = { x: 0, y: 0 };
+
+function draw() {
+  if (mouse.x) {
+    lastMouseX = mouse.x;
+    lastMouseY = mouse.y;
+    target.errx = mouse.x - target.x;
+    target.erry = mouse.y - target.y;
+  } else {
+    target.errx =
+      w / 2 +
+      ((h / 2 - q) * Math.sqrt(2) * Math.cos(t)) /
+        (Math.pow(Math.sin(t), 2) + 1) -
+      target.x;
+    target.erry =
+      h / 2 +
+      ((h / 2 - q) * Math.sqrt(2) * Math.cos(t) * Math.sin(t)) /
+        (Math.pow(Math.sin(t), 2) + 1) -
+      target.y;
+  }
+
+  target.x += target.errx / 10;
+  target.y += target.erry / 10;
+
+  t += 0.01;
+
+  c.beginPath();
+  c.arc(
+    target.x,
+    target.y,
+    dist(lastTarget.x, lastTarget.y, target.x, target.y) + 5,
+    0,
+    2 * Math.PI
+  );
+  c.fillStyle = "hsl(210,100%,80%)";
+  c.fill();
+
+  for (let i = 0; i < numt; i++) {
+    tent[i].move(lastTarget, target);
+    tent[i].show2(target);
+  }
+
+  for (let i = 0; i < numt; i++) {
+    tent[i].show(target);
+  }
+
+  for (let i = 0; i < projectiles.length; i++) {
+    const proj = projectiles[i];
+    c.beginPath();
+    c.arc(proj.x, proj.y, projectileSize, 0, Math.PI * 2);
+    c.fillStyle = "white"; // Color de los proyectiles
+    c.fill();
+  }
+
+  lastTarget.x = target.x;
+  lastTarget.y = target.y;
+}
+
+
+// ...
+
+
+
+// Dentro del evento de dejar de mover el mouse
+function handleMouseLeave() {
+  mouse.x = lastMouseX;
+  mouse.y = lastMouseY;
+}
+
     
   
     canvas.addEventListener(
@@ -310,15 +331,13 @@ window.requestAnimFrame = function () {
       }
     }
     function shoot() {
-      const lastSegment = tent[0].segments[tent[0].n - 1];
-      const x = lastSegment.nextPos.x;
-      const y = lastSegment.nextPos.y;
+      const x = lastTarget.x;
+      const y = lastTarget.y;
       const angle = Math.atan2(mouse.y - y, mouse.x - x);
       const dx = Math.cos(angle) * projectileSpeed;
       const dy = Math.sin(angle) * projectileSpeed;
       projectiles.push({ x, y, dx, dy });
     }
-    
   
     window.addEventListener("resize", function () {
       (w = canvas.width = window.innerWidth),
